@@ -1,0 +1,88 @@
+services:
+
+  db:
+    image: mysql:8.0
+    container_name: dnat_db
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: dnat
+      MYSQL_DATABASE: dnat_equipment
+      MYSQL_USER: dnat_user
+      MYSQL_PASSWORD: "2024"
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pdnat"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - dnat_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dnat_backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_USER: dnat_user
+      DB_PASSWORD: "2024"
+      DB_NAME: dnat_equipment
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - dnat_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dnat_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - dnat_network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: dnat_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: dnat
+      UPLOAD_LIMIT: 100M
+    ports:
+      - "8181:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - dnat_network
+
+volumes:
+  db_data:
+    name: dnat_db_data
+  uploads_data:
+    name: dnat_uploads_data
+
+networks:
+  dnat_network:
+    name: dnat_network
+    driver: bridge
