@@ -24,15 +24,19 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── MySQL Pool ──────────────────────────────────────────────
 const pool = mysql.createPool({
-  host:     process.env.DB_HOST     || 'localhost',
-  user:     process.env.DB_USER     || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME     || 'dnat_equipment',
-  charset:  'utf8mb4',
+  host: process.env.DB_HOST || "localhost",
+  port: Number(process.env.DB_PORT || 3306),
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "",
+  database: process.env.DB_NAME || "dnat_equipment",
+  charset: "utf8mb4",
   waitForConnections: true,
   connectionLimit: 10,
 });
 
+app.get("/", (req, res) => {
+  res.send("DNAT API is running 🚀");
+});
 // ─── Multer (Image Upload) ───────────────────────────────────
 //
 // วิธีอัปโหลดรูปภาพมี 2 แบบ:
