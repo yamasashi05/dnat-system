@@ -1,9 +1,6 @@
 // ============================================================
 // DNAT Equipment Management - Express.js Backend
 // ============================================================
-// ติดตั้ง: npm install express mysql2 cors multer bcrypt dotenv
-// รัน: node server.js
-// ============================================================
 
 require('dotenv').config();
 const express  = require('express');
@@ -17,12 +14,10 @@ const fs       = require('fs');
 const app  = express();
 const PORT = process.env.PORT || 4000;
 
-// ─── Middleware ──────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ─── MySQL Pool ──────────────────────────────────────────────
 const pool = mysql.createPool({
   host: process.env.DB_HOST || "localhost",
   port: Number(process.env.DB_PORT || 3306),
@@ -34,24 +29,65 @@ const pool = mysql.createPool({
   connectionLimit: 10,
 });
 
-app.get("/", (req, res) => {
-  res.send("DNAT API is running 🚀");
-});
+// ─── Auto-init Tables ────────────────────────────────────────
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(50) NOT NULL UNIQUE,
+      password VARCHAR(255) NOT NULL,
+      is_active TINYINT DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`
+    INSERT IGNORE INTO users (username, password, is_active) VALUES 
+    ('admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1)
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS equipment (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      code VARCHAR(50) NOT NULL UNIQUE,
+      name VARCHAR(200) NOT NULL,
+      category VARCHAR(100),
+      team VARCHAR(100) DEFAULT 'Other',
+      status VARCHAR(50) DEFAULT 'ปกติ',
+      location VARCHAR(200),
+      quantity INT DEFAULT 1,
+      image_path VARCHAR(500),
+      image_data MEDIUMBLOB,
+      image_mime VARCHAR(50),
+      description TEXT,
+      purchase_date DATE,
+      purchase_price DECIMAL(10,2),
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS borrow_history (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      doc_no VARCHAR(100) NOT NULL,
+      equipment_code VARCHAR(50),
+      equipment_name VARCHAR(200),
+      type VARCHAR(50) DEFAULT 'เบิก',
+      borrow_qty INT DEFAULT 1,
+      borrower VARCHAR(200) NOT NULL,
+      department VARCHAR(200),
+      borrow_date DATE,
+      return_date DATE,
+      return_status VARCHAR(50) DEFAULT 'ยังไม่คืน',
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  console.log('✅ DB initialized');
+}
+initDB().catch(console.error);
 
+app.get("/", (req, res) => res.send("DNAT API is running 🚀"));
 
-// ─── Multer (Image Upload) ───────────────────────────────────
-//
-// วิธีอัปโหลดรูปภาพมี 2 แบบ:
-//
-// [แนะนำ] แบบ 1: เก็บเป็นไฟล์บน server (image_path)
-//   → เร็ว, ประหยัด DB, preview ง่าย
-//   → ตัวอย่างนี้ใช้แบบนี้
-//
-// แบบ 2: เก็บเป็น Binary ใน MySQL (image_data)
-//   → ไม่ต้องจัดการไฟล์ server
-//   → แต่ฐานข้อมูลหนักขึ้น
-//   → ใช้ endpoint /equipment/:id/image-binary (ข้างล่าง)
-//
 const uploadDir = path.join(__dirname, 'uploads', 'equipment');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
@@ -59,41 +95,26 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename:    (req, file, cb) => {
     const ext  = path.extname(file.originalname);
-    const name = `${req.params.id}_${Date.now()}${ext}`;
-    cb(null, name);
+    cb(null, `${req.params.id}_${Date.now()}${ext}`);
   },
 });
+const upload = multer({ storage, limits: { fileSize: 10*1024*1024 }, fileFilter: (req,file,cb) => {
+  ['image/jpeg','image/png','image/webp','image/gif'].includes(file.mimetype) ? cb(null,true) : cb(new Error('Only image files'));
+}});
+const uploadMem = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10*1024*1024 } });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
-  fileFilter: (req, file, cb) => {
-    const ok = ['image/jpeg','image/png','image/webp','image/gif'];
-    if (ok.includes(file.mimetype)) cb(null, true);
-    else cb(new Error('Only image files allowed'));
-  },
-});
-
-// Multer memory storage สำหรับ binary
-const uploadMem = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
-
-// ─── Helper ──────────────────────────────────────────────────
-const ok  = (res, data, msg='success') => res.json({ success:true,  message:msg, data });
+const ok  = (res, data, msg='success') => res.json({ success:true, message:msg, data });
 const err = (res, msg, code=500)       => res.status(code).json({ success:false, message:msg });
 
-// ============================================================
-// EQUIPMENT ROUTES
-// ============================================================
-
-// GET /equipment  — รายการอุปกรณ์ทั้งหมด (+ filter)
+// ── EQUIPMENT ──
 app.get('/equipment', async (req, res) => {
   try {
     const { status, team, category, q } = req.query;
     let sql = 'SELECT id,code,name,category,team,status,location,quantity,image_path,description FROM equipment WHERE 1=1';
     const params = [];
-    if (status)   { sql += ' AND status=?';           params.push(status); }
-    if (team)     { sql += ' AND team=?';             params.push(team); }
-    if (category) { sql += ' AND category=?';         params.push(category); }
+    if (status)   { sql += ' AND status=?'; params.push(status); }
+    if (team)     { sql += ' AND team=?'; params.push(team); }
+    if (category) { sql += ' AND category=?'; params.push(category); }
     if (q)        { sql += ' AND (name LIKE ? OR code LIKE ?)'; params.push(`%${q}%`,`%${q}%`); }
     sql += ' ORDER BY code';
     const [rows] = await pool.query(sql, params);
@@ -101,7 +122,6 @@ app.get('/equipment', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-// GET /equipment/stats  — ตัวเลข KPI
 app.get('/equipment/stats', async (req, res) => {
   try {
     const [[total]]    = await pool.query("SELECT COUNT(*) AS n FROM equipment");
@@ -110,27 +130,19 @@ app.get('/equipment/stats', async (req, res) => {
     const [[repair]]   = await pool.query("SELECT COUNT(*) AS n FROM equipment WHERE status='ส่งซ่อม'");
     const [[borrowed]] = await pool.query("SELECT COUNT(*) AS n FROM borrow_history WHERE return_status='ยังไม่คืน'");
     const [[overdue]]  = await pool.query("SELECT COUNT(*) AS n FROM borrow_history WHERE return_status='เกินกำหนด'");
-    ok(res, {
-      total: total.n, normal: normal.n,
-      damaged: damaged.n, repair: repair.n,
-      borrowed: borrowed.n, overdue: overdue.n,
-      health: total.n > 0 ? Math.round((normal.n / total.n) * 100) : 0,
-    });
+    ok(res, { total:total.n, normal:normal.n, damaged:damaged.n, repair:repair.n, borrowed:borrowed.n, overdue:overdue.n,
+      health: total.n > 0 ? Math.round((normal.n/total.n)*100) : 0 });
   } catch(e) { err(res, e.message); }
 });
 
-// GET /equipment/:id
 app.get('/equipment/:id', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM equipment WHERE id=?', [req.params.id]);
     if (!rows.length) return err(res, 'Not found', 404);
-    // ซ่อน binary ออกจาก response ปกติ
-    const row = { ...rows[0], image_data: rows[0].image_data ? 'HAS_IMAGE' : null };
-    ok(res, row);
+    ok(res, { ...rows[0], image_data: rows[0].image_data ? 'HAS_IMAGE' : null });
   } catch(e) { err(res, e.message); }
 });
 
-// POST /equipment  — เพิ่มอุปกรณ์ใหม่
 app.post('/equipment', async (req, res) => {
   try {
     const { code,name,category,team,status,location,quantity,description,purchase_date,purchase_price,notes } = req.body;
@@ -143,7 +155,6 @@ app.post('/equipment', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-// PUT /equipment/:id  — แก้ไขข้อมูล
 app.put('/equipment/:id', async (req, res) => {
   try {
     const { name,category,team,status,location,quantity,description,purchase_date,purchase_price,notes } = req.body;
@@ -155,7 +166,6 @@ app.put('/equipment/:id', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-// DELETE /equipment/:id
 app.delete('/equipment/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM equipment WHERE id=?', [req.params.id]);
@@ -163,17 +173,7 @@ app.delete('/equipment/:id', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-// ============================================================
-// IMAGE ROUTES
-// ============================================================
-
-// [วิธี 1 - แนะนำ] POST /equipment/:id/image  — อัปโหลดรูปเป็นไฟล์
-//
-// ใช้ form-data, key = "image"
-// curl -X POST http://localhost:4000/equipment/1/image -F "image=@photo.jpg"
-// รูปจะถูกเก็บที่ ./uploads/equipment/1_timestamp.jpg
-// และ DB จะบันทึก path: /uploads/equipment/1_timestamp.jpg
-//
+// ── IMAGES ──
 app.post('/equipment/:id/image', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return err(res, 'No file uploaded', 400);
@@ -183,23 +183,15 @@ app.post('/equipment/:id/image', upload.single('image'), async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-// [วิธี 2] POST /equipment/:id/image-binary  — เก็บรูปใน MySQL โดยตรง
-//
-// curl -X POST http://localhost:4000/equipment/1/image-binary -F "image=@photo.jpg"
-// รูปถูกเก็บเป็น MEDIUMBLOB ใน column image_data
-//
 app.post('/equipment/:id/image-binary', uploadMem.single('image'), async (req, res) => {
   try {
     if (!req.file) return err(res, 'No file uploaded', 400);
-    await pool.query(
-      'UPDATE equipment SET image_data=?, image_mime=? WHERE id=?',
-      [req.file.buffer, req.file.mimetype, req.params.id]
-    );
+    await pool.query('UPDATE equipment SET image_data=?, image_mime=? WHERE id=?',
+      [req.file.buffer, req.file.mimetype, req.params.id]);
     ok(res, null, 'Image saved to DB');
   } catch(e) { err(res, e.message); }
 });
 
-// GET /equipment/:id/image-binary  — ดึงรูปจาก DB มาแสดง
 app.get('/equipment/:id/image-binary', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT image_data, image_mime FROM equipment WHERE id=?', [req.params.id]);
@@ -209,11 +201,7 @@ app.get('/equipment/:id/image-binary', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-// ============================================================
-// BORROW HISTORY ROUTES
-// ============================================================
-
-// GET /history
+// ── HISTORY ──
 app.get('/history', async (req, res) => {
   try {
     const { return_status, q } = req.query;
@@ -227,7 +215,6 @@ app.get('/history', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-// POST /history  — เพิ่มรายการเบิก
 app.post('/history', async (req, res) => {
   try {
     const { doc_no,equipment_code,equipment_name,type,borrow_qty,borrower,department,borrow_date,notes } = req.body;
@@ -240,7 +227,6 @@ app.post('/history', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-// PATCH /history/:id/return  — บันทึกการคืน
 app.patch('/history/:id/return', async (req, res) => {
   try {
     const { return_date, notes } = req.body;
@@ -252,7 +238,6 @@ app.patch('/history/:id/return', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-// DELETE /history/:id
 app.delete('/history/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM borrow_history WHERE id=?', [req.params.id]);
@@ -260,9 +245,7 @@ app.delete('/history/:id', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-// ============================================================
-// AUTH ROUTES (เบื้องต้น)
-// ============================================================
+// ── AUTH ──
 app.post('/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -275,5 +258,4 @@ app.post('/auth/login', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-// ─── Start ───────────────────────────────────────────────────
 app.listen(PORT, () => console.log(`✅ DNAT API running → http://localhost:${PORT}`));
