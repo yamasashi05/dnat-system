@@ -14,6 +14,7 @@ const fs       = require('fs');
 const app  = express();
 const PORT = process.env.PORT || 4000;
 
+// ✅ Middleware ก่อน routes
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -258,4 +259,5 @@ app.post('/auth/login', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
-app.listen(PORT, () => console.log(`✅ DNAT API running → http://localhost:${PORT}`));
+// ✅ Listen แค่ครั้งเดียว พร้อม 0.0.0.0 สำหรับ Railway
+app.listen(PORT, '0.0.0.0', () => console.log(`✅ DNAT API running → http://localhost:${PORT}`));
