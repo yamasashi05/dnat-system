@@ -4,7 +4,6 @@
 
 require("dotenv").config();
 const express = require("express");
-const mysql = require("mysql2/promise"); // ✅ ใช้ตัวเดียวพอ
 const cors = require("cors");
 const multer = require("multer");
 const bcrypt = require("bcrypt");
