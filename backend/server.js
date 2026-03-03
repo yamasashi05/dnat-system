@@ -12,22 +12,21 @@ const path     = require('path');
 const fs       = require('fs');
 
 const app  = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 8080;
 
 // ✅ Middleware ก่อน routes
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+const mysql = require("mysql2");
+
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "dnat_equipment",
-  charset: "utf8mb4",
-  waitForConnections: true,
-  connectionLimit: 10,
+  host: process.env.MYSQLHOST,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE,
+  port: process.env.MYSQLPORT,
 });
 
 // ─── Auto-init Tables ────────────────────────────────────────
@@ -260,4 +259,6 @@ app.post('/auth/login', async (req, res) => {
 });
 
 // ✅ Listen แค่ครั้งเดียว พร้อม 0.0.0.0 สำหรับ Railway
-app.listen(PORT, '0.0.0.0', () => console.log(`✅ DNAT API running → http://localhost:${PORT}`));
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`DNAT API running on port ${PORT}`);
+});

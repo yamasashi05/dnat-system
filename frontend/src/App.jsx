@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const API = "http://localhost:4000";
+const API = import.meta.env.VITE_API_URL || "https://dnat-system-production-ed4f.up.railway.app";
 
 
 // ─── DNAT Logo (base64) ──────────────────────────────────────
