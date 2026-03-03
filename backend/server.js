@@ -2,31 +2,36 @@
 // DNAT Equipment Management - Express.js Backend
 // ============================================================
 
-require('dotenv').config();
-const express  = require('express');
-const mysql    = require('mysql2/promise');
-const cors     = require('cors');
-const multer   = require('multer');
-const bcrypt   = require('bcrypt');
-const path     = require('path');
-const fs       = require('fs');
+require("dotenv").config();
+const express = require("express");
+const mysql = require("mysql2/promise"); // ✅ ใช้ตัวเดียวพอ
+const cors = require("cors");
+const multer = require("multer");
+const bcrypt = require("bcrypt");
+const path = require("path");
+const fs = require("fs");
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 8080;
 
-// ✅ Middleware ก่อน routes
-app.use(cors());
-app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ✅ CORS (ใส่ origin ของ frontend Railway คุณ)
+app.use(
+  cors({
+    origin: ["https://ingenious-magic-production.up.railway.app"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  })
+);
+app.options("*", cors());
 
-const mysql = require("mysql2");
+app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const pool = mysql.createPool({
   host: process.env.MYSQLHOST,
   user: process.env.MYSQLUSER,
   password: process.env.MYSQLPASSWORD,
   database: process.env.MYSQLDATABASE,
-  port: process.env.MYSQLPORT,
+  port: Number(process.env.MYSQLPORT || 3306),
 });
 
 // ─── Auto-init Tables ────────────────────────────────────────
