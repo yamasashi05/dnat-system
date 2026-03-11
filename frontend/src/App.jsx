@@ -187,7 +187,17 @@ const EquipmentForm = ({ initial, onSave, onClose }) => {
   const [form, setForm] = useState(initial || { code:"", name:"", category:"", team:"Other", status:"ปกติ", location:"", quantity:1, description:"", notes:"" });
   const [imageFile, setImageFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [nextCode, setNextCode] = useState("...");
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  useEffect(() => {
+    if (!initial?.id) {
+      fetch(`${API}/equipment/next-code`)
+        .then(r => r.json())
+        .then(d => { if (d.data?.code) setNextCode(d.data.code); })
+        .catch(() => setNextCode("EQ-????"));
+    }
+  }, [initial?.id]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -211,7 +221,16 @@ const EquipmentForm = ({ initial, onSave, onClose }) => {
   return (
     <div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-        <Field label="รหัสอุปกรณ์ *"><Input value={form.code} onChange={e=>set("code",e.target.value)} placeholder="A001" /></Field>
+        {initial?.id
+          ? <Field label="รหัสอุปกรณ์"><Input value={form.code} onChange={e=>set("code",e.target.value)} /></Field>
+          : <Field label="รหัสอุปกรณ์ (Auto)">
+              <div style={{ padding:"10px 14px", background:"#0D1117", border:`1px solid ${C.border2}`, borderRadius:8, color:C.blue, fontSize:14, fontWeight:700, letterSpacing:"0.05em", display:"flex", alignItems:"center", gap:8 }}>
+                <span style={{ fontSize:16 }}>🏷️</span>
+                <span>{nextCode}</span>
+                <span style={{ fontSize:11, color:C.muted, fontWeight:400, marginLeft:"auto" }}>สร้างอัตโนมัติ</span>
+              </div>
+            </Field>
+        }
         <Field label="ชื่ออุปกรณ์ *"><Input value={form.name} onChange={e=>set("name",e.target.value)} placeholder="ชื่ออุปกรณ์" /></Field>
         <Field label="หมวดหมู่"><Input value={form.category||""} onChange={e=>set("category",e.target.value)} placeholder="เช่น ไฟฟ้า" /></Field>
         <Field label="ที่เก็บ"><Input value={form.location||""} onChange={e=>set("location",e.target.value)} placeholder="เช่น ชั้น A" /></Field>

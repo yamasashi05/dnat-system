@@ -155,6 +155,22 @@ app.get('/equipment/stats', async (req, res) => {
   } catch(e) { err(res, e.message); }
 });
 
+// ── AUTO-GENERATE CODE (ต้องอยู่ก่อน /:id เสมอ) ──
+app.get('/equipment/next-code', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT code FROM equipment WHERE code REGEXP '^EQ-[0-9]+$' ORDER BY CAST(SUBSTRING(code, 4) AS UNSIGNED) DESC LIMIT 1"
+    );
+    let nextNum = 1;
+    if (rows.length > 0) {
+      const lastNum = parseInt(rows[0].code.replace('EQ-', ''), 10);
+      nextNum = lastNum + 1;
+    }
+    const nextCode = `EQ-${String(nextNum).padStart(4, '0')}`;
+    ok(res, { code: nextCode });
+  } catch(e) { err(res, e.message); }
+});
+
 app.get('/equipment/:id', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM equipment WHERE id=?', [req.params.id]);
@@ -165,13 +181,25 @@ app.get('/equipment/:id', async (req, res) => {
 
 app.post('/equipment', async (req, res) => {
   try {
-    const { code,name,category,team,status,location,quantity,description,purchase_date,purchase_price,notes } = req.body;
-    if (!code || !name) return err(res, 'code and name required', 400);
+    const { name,category,team,status,location,quantity,description,purchase_date,purchase_price,notes } = req.body;
+    if (!name) return err(res, 'name required', 400);
+
+    // Auto-generate รหัสอุปกรณ์
+    const [rows] = await pool.query(
+      "SELECT code FROM equipment WHERE code REGEXP '^EQ-[0-9]+$' ORDER BY CAST(SUBSTRING(code, 4) AS UNSIGNED) DESC LIMIT 1"
+    );
+    let nextNum = 1;
+    if (rows.length > 0) {
+      const lastNum = parseInt(rows[0].code.replace('EQ-', ''), 10);
+      nextNum = lastNum + 1;
+    }
+    const autoCode = `EQ-${String(nextNum).padStart(4, '0')}`;
+
     const [result] = await pool.query(
       'INSERT INTO equipment (code,name,category,team,status,location,quantity,description,purchase_date,purchase_price,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-      [code,name,category,team||'Other',status||'ปกติ',location,quantity||1,description,purchase_date||null,purchase_price||null,notes]
+      [autoCode,name,category,team||'Other',status||'ปกติ',location,quantity||1,description,purchase_date||null,purchase_price||null,notes]
     );
-    ok(res, { id: result.insertId }, 'Created');
+    ok(res, { id: result.insertId, code: autoCode }, 'Created');
   } catch(e) { err(res, e.message); }
 });
 

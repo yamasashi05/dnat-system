@@ -2,10 +2,10 @@
 -- version 5.2.3
 -- https://www.phpmyadmin.net/
 --
--- Hôte : db
--- Généré le : mar. 03 mars 2026 à 12:40
--- Version du serveur : 8.0.44
--- Version de PHP : 8.3.30
+-- Host: db
+-- Generation Time: Mar 11, 2026 at 03:38 PM
+-- Server version: 8.0.44
+-- PHP Version: 8.3.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -17,19 +17,15 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
-CREATE DATABASE IF NOT EXISTS railway;
-USE railway;
-
 --
--- Base de données : `dnat_equipment`
+-- Database: `dnat_equipment`
 --
 
 -- --------------------------------------------------------
 
 --
--- Structure de la table `borrow_history`
+-- Table structure for table `borrow_history`
 --
-
 
 CREATE TABLE `borrow_history` (
   `id` int UNSIGNED NOT NULL,
@@ -48,7 +44,7 @@ CREATE TABLE `borrow_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
--- Déchargement des données de la table `borrow_history`
+-- Dumping data for table `borrow_history`
 --
 
 INSERT INTO `borrow_history` (`id`, `doc_no`, `equipment_code`, `equipment_name`, `type`, `borrow_date`, `borrower`, `department`, `borrow_qty`, `return_date`, `return_status`, `notes`, `created_at`) VALUES
@@ -58,7 +54,7 @@ INSERT INTO `borrow_history` (`id`, `doc_no`, `equipment_code`, `equipment_name`
 -- --------------------------------------------------------
 
 --
--- Structure de la table `equipment`
+-- Table structure for table `equipment`
 --
 
 CREATE TABLE `equipment` (
@@ -82,7 +78,7 @@ CREATE TABLE `equipment` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
--- Déchargement des données de la table `equipment`
+-- Dumping data for table `equipment`
 --
 
 INSERT INTO `equipment` (`id`, `code`, `name`, `team`, `category`, `quantity`, `image_path`, `status`, `description`, `created_at`, `updated_at`, `location`, `image_data`, `image_mime`, `purchase_date`, `purchase_price`, `notes`) VALUES
@@ -487,30 +483,30 @@ INSERT INTO `equipment` (`id`, `code`, `name`, `team`, `category`, `quantity`, `
 -- --------------------------------------------------------
 
 --
--- Structure de la table `users`
+-- Table structure for table `users`
 --
 
 CREATE TABLE `users` (
   `id` int NOT NULL,
-  `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `is_active` tinyint DEFAULT '1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Déchargement des données de la table `users`
+-- Dumping data for table `users`
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `is_active`, `created_at`) VALUES
 (1, 'admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, '2026-03-02 12:09:07');
 
 --
--- Index pour les tables déchargées
+-- Indexes for dumped tables
 --
 
 --
--- Index pour la table `borrow_history`
+-- Indexes for table `borrow_history`
 --
 ALTER TABLE `borrow_history`
   ADD PRIMARY KEY (`id`),
@@ -518,53 +514,51 @@ ALTER TABLE `borrow_history`
   ADD KEY `idx_equipment_code` (`equipment_code`);
 
 --
--- Index pour la table `equipment`
+-- Indexes for table `equipment`
 --
 ALTER TABLE `equipment`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uk_equipment_code` (`code`);
 
 --
--- Index pour la table `users`
+-- Indexes for table `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `username` (`username`);
 
 --
--- AUTO_INCREMENT pour les tables déchargées
+-- AUTO_INCREMENT for dumped tables
 --
 
 --
--- AUTO_INCREMENT pour la table `borrow_history`
+-- AUTO_INCREMENT for table `borrow_history`
 --
 ALTER TABLE `borrow_history`
   MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
--- AUTO_INCREMENT pour la table `equipment`
+-- AUTO_INCREMENT for table `equipment`
 --
 ALTER TABLE `equipment`
   MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=397;
 
 --
--- AUTO_INCREMENT pour la table `users`
+-- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
--- Contraintes pour les tables déchargées
+-- Constraints for dumped tables
 --
 
 --
--- Contraintes pour la table `borrow_history`
+-- Constraints for table `borrow_history`
 --
 ALTER TABLE `borrow_history`
   ADD CONSTRAINT `fk_borrow_equipment_code` FOREIGN KEY (`equipment_code`) REFERENCES `equipment` (`code`) ON DELETE RESTRICT ON UPDATE CASCADE;
 COMMIT;
-
-
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
