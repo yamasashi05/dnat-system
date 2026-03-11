@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const API = "http://localhost:4000";
+const API = "https://dnat-system.onrender.com";
 
 
 // ─── DNAT Logo (base64) ──────────────────────────────────────
