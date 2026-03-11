@@ -11,11 +11,10 @@ const multer = require("multer");
 const bcrypt = require("bcrypt");
 const path = require("path");
 const fs = require("fs");
-const express = require("express");
 const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 10000;
 
 // ✅ CORS (ใส่ origin ของ frontend Railway คุณ)
 
@@ -37,15 +36,9 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  ssl: process.env.MYSQL_SSL === "true"
-    ? { rejectUnauthorized: false }
-    : undefined
+  database: process.env.DB_NAME
 });
 
   // ✅ ถ้าคุณต่อผ่าน proxy/public host มักต้องใช้ SSL
