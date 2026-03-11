@@ -11,6 +11,8 @@ const multer = require("multer");
 const bcrypt = require("bcrypt");
 const path = require("path");
 const fs = require("fs");
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -21,11 +23,12 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://ingenious-magic-production.up.railway.app"
+    "https://dnat-system-1.onrender.com"
   ],
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   credentials: true
 }))
+app.use(express.json());
 
 app.options("*", cors())
 
