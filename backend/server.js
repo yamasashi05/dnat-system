@@ -3,15 +3,14 @@
 // ============================================================
 
 require("dotenv").config();
+
 const express = require("express");
-const mysql = require("mysql2/promise");// ✅ ต้องมี (แก้ error mysql is not defined)
+const mysql = require("mysql2/promise");
 const cors = require("cors");
 const multer = require("multer");
 const bcrypt = require("bcrypt");
 const path = require("path");
 const fs = require("fs");
-const express = require("express");
-const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -40,26 +39,15 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
-  connectionLimit: 10
+  connectionLimit: 10,
+  ssl: process.env.MYSQL_SSL === "true"
+    ? { rejectUnauthorized: false }
+    : undefined
 });
 
   // ✅ ถ้าคุณต่อผ่าน proxy/public host มักต้องใช้ SSL
   // เปิดด้วยการตั้ง MYSQL_SSL=true ใน Railway Variables
-  ssl: process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: false } : undefined,
-});
-
-// ✅ แนะนำ: เช็คการต่อ DB ตอนเริ่ม (ไม่ให้พังเงียบ)
-async function initDB() {
-  try {
-    await pool.query("SELECT 1");
-    console.log("✅ MySQL connected");
-  } catch (err) {
-    console.error("❌ MySQL connect failed:", err?.message || err);
-  }
-
-  // …ค่อยตามด้วย CREATE TABLE ต่าง ๆ ของคุณ
-}
-initDB().catch(console.error);
+  
 
 // ─── Auto-init Tables ────────────────────────────────────────
 async function initDB() {
