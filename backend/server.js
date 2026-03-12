@@ -5,7 +5,7 @@
 require("dotenv").config();
 
 const express = require("express");
-const mysql = require("mysql2");
+const mysql = require("mysql2/promise");
 const cors = require("cors");
 const multer = require("multer");
 const bcrypt = require("bcrypt");
@@ -47,7 +47,7 @@ const pool = mysql.createPool({
   }
 });
 
-const db = pool.promise();
+
   // ✅ ถ้าคุณต่อผ่าน proxy/public host มักต้องใช้ SSL
   // เปิดด้วยการตั้ง MYSQL_SSL=true ใน Railway Variables
   
