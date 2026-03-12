@@ -7,6 +7,9 @@
 -- Server version: 8.0.44
 -- PHP Version: 8.3.30
 
+USE defaultdb;
+
+SET SESSION sql_require_primary_key=0;
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
@@ -28,7 +31,7 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `borrow_history` (
-  `id` int UNSIGNED NOT NULL,
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
   `doc_no` varchar(50) NOT NULL,
   `equipment_code` varchar(20) NOT NULL,
   `equipment_name` varchar(255) NOT NULL,
@@ -36,13 +39,13 @@ CREATE TABLE `borrow_history` (
   `borrow_date` date NOT NULL,
   `borrower` varchar(100) NOT NULL,
   `department` varchar(100) NOT NULL DEFAULT '',
-  `borrow_qty` int NOT NULL DEFAULT '1',
+  `borrow_qty` int NOT NULL DEFAULT 1,
   `return_date` date DEFAULT NULL,
-  `return_status` varchar(50) NOT NULL DEFAULT 'à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸„à¸·à¸™',
+  `return_status` varchar(50) NOT NULL,
   `notes` text,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+);
 --
 -- Dumping data for table `borrow_history`
 --
