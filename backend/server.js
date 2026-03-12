@@ -12,6 +12,7 @@ const bcrypt = require("bcrypt");
 const path = require("path");
 const fs = require("fs");
 
+
 const app = express();
 const PORT = process.env.PORT || 10000;
 
@@ -21,11 +22,11 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://dnat-system-api.onrender.com"
+    "https://dnat-system-1.onrender.com"
   ],
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   credentials: true
-}))
+}));
 app.use(express.json());
 
 app.options("*", cors())
@@ -35,17 +36,18 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
+  port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-
+  waitForConnections: true,
+  connectionLimit: 10,
   ssl: {
     rejectUnauthorized: false
   }
 });
-module.exports = pool.promise();
 
+const db = pool.promise();
   // ✅ ถ้าคุณต่อผ่าน proxy/public host มักต้องใช้ SSL
   // เปิดด้วยการตั้ง MYSQL_SSL=true ใน Railway Variables
   
