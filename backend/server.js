@@ -162,14 +162,14 @@ app.get('/equipment/stats', async (req, res) => {
 app.get('/equipment/next-code', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT code FROM equipment WHERE code REGEXP '^EQ-[0-9]+$' ORDER BY CAST(SUBSTRING(code, 4) AS UNSIGNED) DESC LIMIT 1"
+      "SELECT code FROM equipment WHERE code REGEXP '^A[0-9]+$' ORDER BY CAST(SUBSTRING(code, 2) AS UNSIGNED) DESC LIMIT 1"
     );
     let nextNum = 1;
     if (rows.length > 0) {
-      const lastNum = parseInt(rows[0].code.replace('EQ-', ''), 10);
+      const lastNum = parseInt(rows[0].code.replace('A', ''), 10);
       nextNum = lastNum + 1;
     }
-    const nextCode = `EQ-${String(nextNum).padStart(4, '0')}`;
+    const nextCode = `A${nextNum}`;
     ok(res, { code: nextCode });
   } catch(e) { err(res, e.message); }
 });
@@ -189,14 +189,14 @@ app.post('/equipment', async (req, res) => {
 
     // Auto-generate รหัสอุปกรณ์
     const [rows] = await pool.query(
-      "SELECT code FROM equipment WHERE code REGEXP '^EQ-[0-9]+$' ORDER BY CAST(SUBSTRING(code, 4) AS UNSIGNED) DESC LIMIT 1"
+      "SELECT code FROM equipment WHERE code REGEXP '^A[0-9]+$' ORDER BY CAST(SUBSTRING(code, 2) AS UNSIGNED) DESC LIMIT 1"
     );
     let nextNum = 1;
     if (rows.length > 0) {
-      const lastNum = parseInt(rows[0].code.replace('EQ-', ''), 10);
+      const lastNum = parseInt(rows[0].code.replace('A', ''), 10);
       nextNum = lastNum + 1;
     }
-    const autoCode = `EQ-${String(nextNum).padStart(4, '0')}`;
+    const autoCode = `A${nextNum}`;
 
     const [result] = await pool.query(
       'INSERT INTO equipment (code,name,category,team,status,location,quantity,description,purchase_date,purchase_price,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
