@@ -323,40 +323,59 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = "-- เ
   );
 };
 
-// ─── Borrow Form ─────────────────────────────────────────────
+// ─── Borrow Form (Search + Checkbox) ─────────────────────────
 const BorrowForm = ({ equipment, history, onSave, onClose }) => {
   const today = new Date().toISOString().split("T")[0];
   const nextNo = String((history||[]).length + 1).padStart(3, "0");
-  const [form, setForm] = useState({ doc_no:`BRW-${nextNo}`, equipment_code:"", borrow_qty:1, borrower:"", department:"", borrow_date:today, notes:"" });
-  const [saving, setSaving] = useState(false);
-  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  const [docNo, setDocNo]           = useState(`BRW-${nextNo}`);
+  const [borrower, setBorrower]     = useState("");
+  const [department, setDepartment] = useState("");
+  const [borrowDate, setBorrowDate] = useState(today);
+  const [notes, setNotes]           = useState("");
+  const [saving, setSaving]         = useState(false);
+  const [search, setSearch]         = useState("");
+  // { [code]: qty }  — มีใน map = ติ๊กแล้ว
+  const [selected, setSelected]     = useState({});
 
-  // คำนวณคงเหลือ real-time
-  const selEq = equipment.find(e=>e.code===form.equipment_code);
-  const borrowedQty = (history||[]).filter(h=>h.return_status==="ยังไม่คืน" && h.equipment_code===form.equipment_code)
-    .reduce((sum,h)=>sum+(parseInt(h.borrow_qty)||1),0);
-  const avail = selEq ? Math.max(0,(selEq.quantity||0)-borrowedQty) : null;
-  const isOverQty = avail !== null && form.borrow_qty > avail;
+  const getAvail = (code) => {
+    const eq = equipment.find(e => e.code === code);
+    if (!eq) return 0;
+    const out = (history||[]).filter(h => h.return_status==="ยังไม่คืน" && h.equipment_code===code)
+      .reduce((s,h) => s+(parseInt(h.borrow_qty)||1), 0);
+    return Math.max(0, (eq.quantity||0) - out);
+  };
+
+  const filtered = equipment.filter(eq => {
+    const q = search.toLowerCase();
+    return eq.code.toLowerCase().includes(q) || eq.name.toLowerCase().includes(q);
+  });
+
+  const toggle = (code) => {
+    setSelected(prev => {
+      if (prev[code] !== undefined) {
+        const next = {...prev}; delete next[code]; return next;
+      }
+      return {...prev, [code]: 1};
+    });
+  };
+
+  const setQty = (code, val) => setSelected(prev => ({...prev, [code]: Math.max(1, val)}));
+
+  const checkedList = Object.keys(selected);
+  const hasError = checkedList.some(code => selected[code] > getAvail(code));
 
   const handleSave = async () => {
-    if (!form.equipment_code) { alert("กรุณาเลือกอุปกรณ์"); return; }
-    if (!form.borrower) { alert("กรุณากรอกชื่อผู้เบิก"); return; }
-    if (isOverQty) { alert(`ของคงเหลือแค่ ${avail} ชิ้น ไม่สามารถเบิกเกินได้`); return; }
-    if (avail === 0) { alert("ของหมดแล้ว ไม่สามารถเบิกได้"); return; }
+    if (checkedList.length === 0) { alert("กรุณาติ๊กเลือกอุปกรณ์อย่างน้อย 1 รายการ"); return; }
+    if (!borrower) { alert("กรุณากรอกชื่อผู้เบิก"); return; }
+    if (hasError) { alert("มีรายการที่เกินจำนวนคงเหลือ กรุณาตรวจสอบ"); return; }
     setSaving(true);
     try {
-      await fetch(`${API}/history`,{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          doc_no:           form.doc_no,
-          equipment_code:   form.equipment_code,
-          equipment_name:   selEq?.name || form.equipment_code,
-          type:             "เบิก",
-          borrow_qty:       form.borrow_qty,
-          borrower:         form.borrower,
-          department:       form.department,
-          borrow_date:      form.borrow_date,
-          notes:            form.notes,
-        })});
+      await Promise.all(checkedList.map(code => {
+        const eq = equipment.find(e => e.code === code);
+        return fetch(`${API}/history`, { method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ doc_no:docNo, equipment_code:code, equipment_name:eq?.name||code,
+            type:"เบิก", borrow_qty:selected[code], borrower, department, borrow_date:borrowDate, notes }) });
+      }));
       onSave();
     } catch(e) { alert("Error: "+e.message); }
     setSaving(false);
@@ -364,46 +383,111 @@ const BorrowForm = ({ equipment, history, onSave, onClose }) => {
 
   return (
     <div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-        <Field label="เลขที่เอกสาร"><Input value={form.doc_no} onChange={e=>set("doc_no",e.target.value)} /></Field>
-        <Field label="อุปกรณ์">
-          <SearchableSelect
-            options={equipment.map(e => ({ value: e.code, label: `${e.code} — ${e.name}`, eq: e }))}
-            value={form.equipment_code}
-            onChange={(val, opt) => { set("equipment_code", val); set("borrow_qty", 1); if (opt?.eq?.team) set("department", opt.eq.team); }}
-            placeholder="-- เลือกอุปกรณ์ --"
-          />
-          {selEq && (
-            <div style={{ marginTop:6, fontSize:12, fontWeight:600, color:avail===0?"#f85149":avail<=2?C.yellow:"#3fb950" }}>
-              {avail===0 ? "⛔ ของหมดแล้ว ไม่สามารถเบิกได้" : `✅ คงเหลือ ${avail} / ${selEq.quantity} ชิ้น`}
-              {avail>0 && borrowedQty>0 && <span style={{ color:C.muted, fontWeight:400 }}> (ออกไป {borrowedQty} ชิ้น)</span>}
-            </div>
-          )}
-        </Field>
-        <Field label="จำนวนที่เบิก">
-          <Input type="number" min={1} max={avail||999} value={form.borrow_qty}
-            onChange={e=>set("borrow_qty",Math.max(1,+e.target.value))}
-            style={{ borderColor:isOverQty?"#da3633":undefined }} />
-          {isOverQty && <div style={{ fontSize:11, color:"#f85149", marginTop:4 }}>⚠️ เกินจำนวนคงเหลือ ({avail} ชิ้น)</div>}
-        </Field>
-        <Field label="ชื่อผู้เบิก *"><Input value={form.borrower} onChange={e=>set("borrower",e.target.value)} placeholder="ชื่อ-นามสกุล" /></Field>
+      {/* ── Header ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:4 }}>
+        <Field label="เลขที่เอกสาร"><Input value={docNo} onChange={e=>setDocNo(e.target.value)} /></Field>
+        <Field label="ชื่อผู้เบิก *"><Input value={borrower} onChange={e=>setBorrower(e.target.value)} placeholder="ชื่อ-นามสกุล" /></Field>
         <Field label="ทีม">
-          <Select value={form.department} onChange={e=>set("department",e.target.value)}>
+          <Select value={department} onChange={e=>setDepartment(e.target.value)}>
             <option value="">-- เลือกประเภท --</option>
             {["Production","Event","Other"].map(t=><option key={t}>{t}</option>)}
           </Select>
         </Field>
-        <Field label="วันที่เบิก"><Input type="date" value={form.borrow_date} onChange={e=>set("borrow_date",e.target.value)} /></Field>
+        <Field label="วันที่เบิก"><Input type="date" value={borrowDate} onChange={e=>setBorrowDate(e.target.value)} /></Field>
       </div>
+
+      {/* ── Search bar ── */}
+      <div style={{ marginBottom:8 }}>
+        <label style={{ display:"block", fontSize:11, color:C.muted, fontWeight:700, marginBottom:6, letterSpacing:"0.08em", textTransform:"uppercase" }}>
+          เลือกอุปกรณ์ {checkedList.length > 0 && <span style={{ color:C.yellow }}>({checkedList.length} รายการที่เลือก)</span>}
+        </label>
+        <div style={{ display:"flex", alignItems:"center", gap:8, background:"#0D1117", border:`1px solid ${C.border2}`, borderRadius:8, padding:"8px 14px", marginBottom:8 }}>
+          <div style={{ width:15, height:15, color:C.muted, flexShrink:0 }}><Icon.Search /></div>
+          <input value={search} onChange={e=>setSearch(e.target.value)}
+            placeholder="ค้นหารหัส หรือชื่ออุปกรณ์..."
+            style={{ background:"none", border:"none", outline:"none", color:C.text, fontSize:13, width:"100%", fontFamily:"inherit" }} />
+          {search && <button onClick={()=>setSearch("")} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", padding:0, display:"flex" }}>
+            <div style={{ width:14, height:14 }}><Icon.X /></div>
+          </button>}
+        </div>
+
+        {/* ── Checkbox list ── */}
+        <div style={{ maxHeight:260, overflowY:"auto", display:"flex", flexDirection:"column", gap:4, border:`1px solid ${C.border}`, borderRadius:8, padding:8, background:"#0D1117" }}>
+          {filtered.length === 0
+            ? <div style={{ padding:"20px", textAlign:"center", color:C.muted2, fontSize:13 }}>ไม่พบอุปกรณ์</div>
+            : filtered.map(eq => {
+              const avail  = getAvail(eq.code);
+              const isChk  = selected[eq.code] !== undefined;
+              const isOver = isChk && selected[eq.code] > avail;
+              const isEmpty = avail === 0;
+              return (
+                <div key={eq.code}
+                  onClick={() => !isEmpty && toggle(eq.code)}
+                  style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 10px", borderRadius:7, cursor:isEmpty?"not-allowed":"pointer",
+                    background: isChk ? `${C.yellow}12` : "transparent",
+                    border: `1px solid ${isOver?"#da3633":isChk?`${C.yellow}50`:"transparent"}`,
+                    opacity: isEmpty ? 0.4 : 1, transition:"all .12s" }}
+                  onMouseEnter={e => { if(!isEmpty) e.currentTarget.style.background = isChk?`${C.yellow}18`:"#161b22"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = isChk?`${C.yellow}12`:"transparent"; }}>
+
+                  {/* Checkbox */}
+                  <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${isChk?C.yellow:C.border2}`,
+                    background: isChk?C.yellow:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .12s" }}>
+                    {isChk && <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#1a1a0a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
+                  </div>
+
+                  {/* Info */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                      <code style={{ fontSize:11, color:C.blue, fontWeight:700 }}>{eq.code}</code>
+                      <span style={{ fontSize:13, color:C.text, fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{eq.name}</span>
+                    </div>
+                    <div style={{ fontSize:11, marginTop:2, color:avail===0?"#f85149":avail<=2?C.yellow:C.muted }}>
+                      {avail===0 ? "⛔ ของหมด" : `คงเหลือ ${avail} ชิ้น`}
+                      {eq.category && <span style={{ color:C.muted2 }}> · {eq.category}</span>}
+                    </div>
+                  </div>
+
+                  {/* Qty input (เฉพาะที่ติ๊ก) */}
+                  {isChk && (
+                    <div onClick={e=>e.stopPropagation()} style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
+                      <button onClick={()=>setQty(eq.code, (selected[eq.code]||1)-1)}
+                        style={{ width:24, height:24, borderRadius:4, background:"#21262d", border:`1px solid ${C.border2}`, color:C.text, cursor:"pointer", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", lineHeight:1 }}>−</button>
+                      <input type="number" min={1} max={avail} value={selected[eq.code]}
+                        onChange={e=>setQty(eq.code, +e.target.value)}
+                        style={{ width:44, textAlign:"center", background:"#21262d", border:`1px solid ${isOver?"#da3633":C.border2}`, borderRadius:6, color:isOver?"#f85149":C.text, fontSize:13, fontWeight:700, padding:"3px 4px", outline:"none", fontFamily:"inherit" }} />
+                      <button onClick={()=>setQty(eq.code, (selected[eq.code]||1)+1)}
+                        style={{ width:24, height:24, borderRadius:4, background:"#21262d", border:`1px solid ${C.border2}`, color:C.text, cursor:"pointer", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", lineHeight:1 }}>+</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          }
+        </div>
+      </div>
+
       <Field label="รายละเอียดการเบิก / หมายเหตุ">
-        <textarea value={form.notes} onChange={e=>set("notes",e.target.value)}
-          style={{ width:"100%", background:"#0D1117", border:`1px solid ${C.border2}`, borderRadius:8, padding:"10px 14px", color:C.text, fontSize:13, fontFamily:"inherit", resize:"vertical", minHeight:72, outline:"none", boxSizing:"border-box" }} />
+        <textarea value={notes} onChange={e=>setNotes(e.target.value)}
+          style={{ width:"100%", background:"#0D1117", border:`1px solid ${C.border2}`, borderRadius:8, padding:"10px 14px", color:C.text, fontSize:13, fontFamily:"inherit", resize:"vertical", minHeight:56, outline:"none", boxSizing:"border-box" }} />
       </Field>
+
+      {/* Summary bar */}
+      {checkedList.length > 0 && (
+        <div style={{ background:"#0d1f2d", border:`1px solid ${C.blue}44`, borderRadius:8, padding:"9px 14px", marginBottom:14, fontSize:12, color:C.blue, display:"flex", gap:8, alignItems:"center" }}>
+          <span>📋</span>
+          <span>เบิก <strong>{checkedList.length} ประเภท</strong> รวม <strong>{checkedList.reduce((s,c)=>s+(selected[c]||0),0)} ชิ้น</strong> — เลขที่ <strong>{docNo}</strong></span>
+          {hasError && <span style={{ color:"#f85149", marginLeft:"auto" }}>⚠️ มีรายการเกินคงเหลือ</span>}
+        </div>
+      )}
+
       <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
         <button onClick={onClose} style={{ padding:"10px 20px", background:C.card, border:`1px solid ${C.border2}`, color:C.muted, borderRadius:8, cursor:"pointer", fontSize:14, fontFamily:"inherit" }}>ยกเลิก</button>
-        <button onClick={handleSave} disabled={saving||avail===0}
-          style={{ padding:"10px 24px", background:saving||avail===0?"#30363d":`linear-gradient(135deg, ${C.yellow}, #c9a010)`, border:"none", color:saving||avail===0?"#666":"#1a1a0a", borderRadius:8, cursor:saving||avail===0?"not-allowed":"pointer", fontSize:14, fontWeight:800, fontFamily:"inherit" }}>
-          {saving?"กำลังบันทึก...":"บันทึกการเบิก"}
+        <button onClick={handleSave} disabled={saving||hasError||checkedList.length===0}
+          style={{ padding:"10px 24px", background:(saving||hasError||checkedList.length===0)?"#30363d":`linear-gradient(135deg, ${C.yellow}, #c9a010)`,
+            border:"none", color:(saving||hasError||checkedList.length===0)?"#666":"#1a1a0a",
+            borderRadius:8, cursor:(saving||hasError||checkedList.length===0)?"not-allowed":"pointer", fontSize:14, fontWeight:800, fontFamily:"inherit" }}>
+          {saving ? "กำลังบันทึก..." : `บันทึกการเบิก${checkedList.length>0?` (${checkedList.length} รายการ)`:""}`}
         </button>
       </div>
     </div>
