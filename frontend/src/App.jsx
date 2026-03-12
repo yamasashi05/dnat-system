@@ -248,7 +248,7 @@ const EquipmentForm = ({ initial, onSave, onClose }) => {
           <input id="imgInput" type="file" accept="image/*" style={{ display:"none" }} onChange={e=>setImageFile(e.target.files[0])} />
           {imageFile
             ? <div style={{ color:"#3fb950", fontSize:13 }}><div style={{ width:20, height:20, margin:"0 auto 6px" }}><Icon.Check /></div>{imageFile.name}</div>
-            : <div style={{ color:C.muted, fontSize:13 }}><div style={{ width:22, height:22, margin:"0 auto 6px" }}><Icon.Upload /></div>คลิกเพื่อเลือกรูปภาพ (max 10MB)</div>}
+            : <div style={{ color:C.muted, fontSize:13 }}><div style={{ width:22, height:22, margin:"0 auto 6px" }}><Icon.Upload /></div>คลิกเพื่อเลือกรูปภาพ (max 1MB)</div>}
           {initial?.image_path && !imageFile && <div style={{ marginTop:6, color:C.muted2, fontSize:11 }}>มีรูปเดิมอยู่แล้ว</div>}
         </div>
       </Field>
