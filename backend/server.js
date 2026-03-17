@@ -13,6 +13,7 @@ const path = require("path");
 const fs = require("fs");
 
 
+
 const app = express();
 const PORT = process.env.PORT || 10000;
 
@@ -85,13 +86,22 @@ const err = (res, msg, code=500)       => res.status(code).json({ success:false,
 app.get('/equipment', async (req, res) => {
   try {
     const { status, team, category, q } = req.query;
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = Math.max(0, (page - 1) * limit);
+
     let sql = 'SELECT id,code,name,category,team,status,location,quantity,image_path,description FROM equipment WHERE 1=1';
     const params = [];
+
     if (status)   { sql += ' AND status=?'; params.push(status); }
     if (team)     { sql += ' AND team=?'; params.push(team); }
     if (category) { sql += ' AND category=?'; params.push(category); }
     if (q)        { sql += ' AND (name LIKE ? OR code LIKE ?)'; params.push(`%${q}%`,`%${q}%`); }
-    sql += ' ORDER BY code';
+
+    sql += ' ORDER BY code LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
     const [rows] = await pool.query(sql, params);
     ok(res, rows);
   } catch(e) { err(res, e.message); }
@@ -260,6 +270,8 @@ app.post('/auth/login', async (req, res) => {
     ok(res, { user }, 'Login success');
   } catch(e) { err(res, e.message); }
 });
+
+initDB();
 
 // ✅ Listen แค่ครั้งเดียว พร้อม 0.0.0.0 สำหรับ Railway
 app.listen(PORT, "0.0.0.0", () => {
