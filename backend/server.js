@@ -57,68 +57,11 @@ async function initDB() {
   }
 }
 
+initDB();
 
 
-  // ✅ ถ้าคุณต่อผ่าน proxy/public host มักต้องใช้ SSL
 
   
-
-// ─── Auto-init Tables ────────────────────────────────────────
-async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      username VARCHAR(50) NOT NULL UNIQUE,
-      password VARCHAR(255) NOT NULL,
-      is_active TINYINT DEFAULT 1,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  await pool.query(`
-    INSERT IGNORE INTO users (username, password, is_active) VALUES 
-    ('admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1)
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS equipment (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      code VARCHAR(50) NOT NULL UNIQUE,
-      name VARCHAR(200) NOT NULL,
-      category VARCHAR(100),
-      team VARCHAR(100) DEFAULT 'Other',
-      status VARCHAR(50) DEFAULT 'ปกติ',
-      location VARCHAR(200),
-      quantity INT DEFAULT 1,
-      image_path VARCHAR(500),
-      image_data MEDIUMBLOB,
-      image_mime VARCHAR(50),
-      description TEXT,
-      purchase_date DATE,
-      purchase_price DECIMAL(10,2),
-      notes TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS borrow_history (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      doc_no VARCHAR(100) NOT NULL,
-      equipment_code VARCHAR(50),
-      equipment_name VARCHAR(200),
-      type VARCHAR(50) DEFAULT 'เบิก',
-      borrow_qty INT DEFAULT 1,
-      borrower VARCHAR(200) NOT NULL,
-      department VARCHAR(200),
-      borrow_date DATE,
-      return_date DATE,
-      return_status VARCHAR(50) DEFAULT 'ยังไม่คืน',
-      notes TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  console.log('✅ DB initialized');
-}
-initDB().catch(console.error);
 
 app.get("/", (req, res) => res.send("DNAT API is running 🚀"));
 
