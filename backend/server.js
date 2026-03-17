@@ -91,7 +91,6 @@ const page = Math.max(1, parseInt(req.query.page) || 1);
 const limit = Math.min(parseInt(req.query.limit) || 10, 100);
 const offset = (page - 1) * limit;
 
-
     let sql = 'SELECT id,code,name,category,team,status,location,quantity,image_path,description FROM equipment WHERE 1=1';
     const params = [];
 
