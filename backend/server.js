@@ -172,7 +172,7 @@ app.get("/equipment/:id", async (req, res) => {
 
 app.post("/equipment", async (req, res) => {
   try {
-    const { name, category, team, status, location, quantity, description, purchase_date, purchase_price, notes } = req.body;
+    const { name, category, team, status, quantity, description } = req.body;
     if (!name) return err(res, "name required", 400);
 
     const [rows] = await pool.query(
@@ -188,25 +188,37 @@ app.post("/equipment", async (req, res) => {
     const autoCode = `A${nextNum}`;
 
     const [result] = await pool.query(
-      "INSERT INTO equipment (code,name,category,team,status,location,quantity,description,purchase_date,purchase_price,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-      [autoCode, name, category, team || "Other", status || "ปกติ", location, quantity || 1, description, purchase_date || null, purchase_price || null, notes]
+      "INSERT INTO equipment (code, name, category, team, status, quantity, description) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [
+        autoCode,
+        name,
+        category || "อื่นๆ",
+        team || "Other",
+        status || "ปกติ",
+        quantity || 1,
+        description || null
+      ]
     );
 
     ok(res, { id: result.insertId, code: autoCode }, "Created");
   } catch (e) {
+    console.error("POST /equipment ERROR:", e);
     err(res, e.message);
   }
 });
 
 app.put("/equipment/:id", async (req, res) => {
   try {
-    const { name, category, team, status, location, quantity, description, purchase_date, purchase_price, notes } = req.body;
+    const { name, category, team, status, quantity, description } = req.body;
+
     await pool.query(
-      "UPDATE equipment SET name=?,category=?,team=?,status=?,location=?,quantity=?,description=?,purchase_date=?,purchase_price=?,notes=? WHERE id=?",
-      [name, category, team, status, location, quantity, description, purchase_date || null, purchase_price || null, notes, req.params.id]
+      "UPDATE equipment SET name=?, category=?, team=?, status=?, quantity=?, description=? WHERE id=?",
+      [name, category, team, status, quantity, description, req.params.id]
     );
+
     ok(res, null, "Updated");
   } catch (e) {
+    console.error("PUT /equipment ERROR:", e);
     err(res, e.message);
   }
 });
