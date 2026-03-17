@@ -12,23 +12,15 @@ const bcrypt = require("bcrypt");
 const path = require("path");
 const fs = require("fs");
 
-const fs = require("fs");
+const app = express();
+const PORT = Number(process.env.PORT || 10000);
 
-const pool = mysql.createPool({
-  host: DB_HOST,
-  port: DB_PORT,
-  user: DB_USER,
-  password: DB_PASSWORD,
-  database: DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  ssl: DB_SSL
-    ? {
-        ca: fs.readFileSync("/etc/secrets/aiven-ca.pem", "utf8"),
-        rejectUnauthorized: true
-      }
-    : undefined
-});
+const DB_HOST = process.env.DB_HOST || process.env.MYSQLHOST;
+const DB_PORT = Number(process.env.DB_PORT || process.env.MYSQLPORT || 3306);
+const DB_USER = process.env.DB_USER || process.env.MYSQLUSER;
+const DB_PASSWORD = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD;
+const DB_NAME = process.env.DB_NAME || process.env.MYSQLDATABASE;
+const DB_SSL = String(process.env.DB_SSL || "false").toLowerCase() === "true";
 
 app.use(cors({
   origin: [
@@ -51,7 +43,14 @@ const pool = mysql.createPool({
   database: DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
-  ssl: DB_SSL ? { rejectUnauthorized: false } : undefined
+  ssl: DB_SSL
+    ? {
+        ca: fs.existsSync("/etc/secrets/aiven-ca.pem")
+          ? fs.readFileSync("/etc/secrets/aiven-ca.pem", "utf8")
+          : undefined,
+        rejectUnauthorized: false
+      }
+    : undefined
 });
 
 async function initDB() {
@@ -101,44 +100,17 @@ const err = (res, msg, code = 500) => res.status(code).json({ success: false, me
 // ── EQUIPMENT ──
 app.get("/equipment", async (req, res) => {
   try {
-    const { status, team, category, q, all } = req.query;
+    const { status, team, category, q } = req.query;
 
-    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
-
-    let sql = `
-      SELECT id, code, name, category, team, status, location, quantity, image_path, description
-      FROM equipment
-      WHERE 1=1
-    `;
+    let sql = "SELECT id,code,name,category,team,status,location,quantity,image_path,description FROM equipment WHERE 1=1";
     const params = [];
 
-    if (status) {
-      sql += " AND status = ?";
-      params.push(status);
-    }
-    if (team) {
-      sql += " AND team = ?";
-      params.push(team);
-    }
-    if (category) {
-      sql += " AND category = ?";
-      params.push(category);
-    }
-    if (q) {
-      sql += " AND (name LIKE ? OR code LIKE ?)";
-      params.push(`%${q}%`, `%${q}%`);
-    }
+    if (status)   { sql += " AND status=?"; params.push(status); }
+    if (team)     { sql += " AND team=?"; params.push(team); }
+    if (category) { sql += " AND category=?"; params.push(category); }
+    if (q)        { sql += " AND (name LIKE ? OR code LIKE ?)"; params.push(`%${q}%`, `%${q}%`); }
 
     sql += " ORDER BY code";
-
-    if (all !== "true") {
-      const rawLimit = Number.parseInt(req.query.limit, 10) || 100;
-      const limit = Math.max(1, Math.min(rawLimit, 1000));
-      const offset = Math.max(0, (page - 1) * limit);
-
-      sql += " LIMIT ? OFFSET ?";
-      params.push(limit, offset);
-    }
 
     const [rows] = await pool.query(sql, params);
     ok(res, rows);
