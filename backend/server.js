@@ -47,9 +47,21 @@ const pool = mysql.createPool({
   }
 });
 
+// 👇 ใส่ตรงนี้
+async function initDB() {
+  try {
+    await pool.query("SELECT 1");
+    console.log("DB Connected");
+  } catch (err) {
+    console.error("DB ERROR:", err.message);
+  }
+}
+// 👇 เรียกใช้ตอน start server
+initDB();
+
 
   // ✅ ถ้าคุณต่อผ่าน proxy/public host มักต้องใช้ SSL
-  // เปิดด้วยการตั้ง MYSQL_SSL=true ใน Railway Variables
+
   
 
 // ─── Auto-init Tables ────────────────────────────────────────
