@@ -88,7 +88,7 @@ app.get('/equipment', async (req, res) => {
     const { status, team, category, q } = req.query;
 
 const page = Math.max(1, parseInt(req.query.page) || 1);
-const limit = Math.min(parseInt(req.query.limit) || 10, 5);
+const limit = Math.min(parseInt(req.query.limit) || 10, 100);
 const offset = (page - 1) * limit;
 
 
