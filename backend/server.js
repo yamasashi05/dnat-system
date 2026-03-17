@@ -56,8 +56,7 @@ async function initDB() {
     console.error("DB ERROR:", err.message);
   }
 }
-// 👇 เรียกใช้ตอน start server
-initDB();
+
 
 
   // ✅ ถ้าคุณต่อผ่าน proxy/public host มักต้องใช้ SSL
