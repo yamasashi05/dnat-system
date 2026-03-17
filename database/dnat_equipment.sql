@@ -511,10 +511,6 @@ INSERT INTO `users` (`id`, `username`, `password`, `is_active`, `created_at`) VA
 --
 -- Indexes for table `borrow_history`
 --
-ALTER TABLE `borrow_history`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_doc_no` (`doc_no`),
-  ADD KEY `idx_equipment_code` (`equipment_code`);
 
 --
 -- Indexes for table `equipment`
@@ -537,8 +533,6 @@ ALTER TABLE `users`
 --
 -- AUTO_INCREMENT for table `borrow_history`
 --
-ALTER TABLE `borrow_history`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `equipment`
@@ -559,8 +553,6 @@ ALTER TABLE `users`
 --
 -- Constraints for table `borrow_history`
 --
-ALTER TABLE `borrow_history`
-  ADD CONSTRAINT `fk_borrow_equipment_code` FOREIGN KEY (`equipment_code`) REFERENCES `equipment` (`code`) ON DELETE RESTRICT ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
