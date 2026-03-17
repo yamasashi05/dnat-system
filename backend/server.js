@@ -52,6 +52,10 @@ const pool = mysql.createPool({
 async function initDB() {
   try {
     await pool.query("SELECT 1");
+
+    // 👇 ใส่ตรงนี้
+    await pool.query("SELECT * FROM tbl_equipment LIMIT 5");
+
     console.log("DB Connected");
   } catch (err) {
     console.error("DB ERROR:", err.message);
@@ -87,9 +91,10 @@ app.get('/equipment', async (req, res) => {
   try {
     const { status, team, category, q } = req.query;
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = Math.max(0, (page - 1) * limit);
+const page = Math.max(1, parseInt(req.query.page) || 1);
+const limit = Math.min(parseInt(req.query.limit) || 10, 5);
+const offset = (page - 1) * limit;
+
 
     let sql = 'SELECT id,code,name,category,team,status,location,quantity,image_path,description FROM equipment WHERE 1=1';
     const params = [];
