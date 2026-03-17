@@ -52,10 +52,6 @@ const pool = mysql.createPool({
 async function initDB() {
   try {
     await pool.query("SELECT 1");
-
-    // 👇 ใส่ตรงนี้
-    await pool.query("SELECT * FROM tbl_equipment LIMIT 5");
-
     console.log("DB Connected");
   } catch (err) {
     console.error("DB ERROR:", err.message);
