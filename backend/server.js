@@ -273,6 +273,8 @@ app.post('/auth/login', async (req, res) => {
 
 initDB();
 
+console.log("LIMIT VERSION: 100");
+
 // ✅ Listen แค่ครั้งเดียว พร้อม 0.0.0.0 สำหรับ Railway
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`DNAT API running on port ${PORT}`);
