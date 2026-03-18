@@ -1,49 +1,55 @@
+// ============================================================
 // SearchableSelect.jsx
-// วางไว้ใน src/components/ แล้ว import ใช้ใน BorrowModal
+// Dropdown component ที่มีช่องค้นหาในตัว (แบบ standalone)
+// วางไว้ใน src/components/ แล้ว import ใช้ที่ไหนก็ได้
+// ============================================================
 
 import { useState, useRef, useEffect } from "react";
 
 /**
  * Props:
- *   options   - Array ของ { value, label }  เช่น equipment list
- *   value     - value ที่เลือกอยู่
- *   onChange  - fn(value, option) เมื่อเลือก
- *   placeholder - text เริ่มต้น
+ *   options     - Array ของ { value, label } เช่น equipment list
+ *   value       - value ที่เลือกอยู่ในขณะนี้
+ *   onChange    - fn(value, option) เรียกเมื่อผู้ใช้เลือกรายการ
+ *   placeholder - ข้อความเริ่มต้นเมื่อยังไม่ได้เลือก
  */
 export default function SearchableSelect({ options = [], value, onChange, placeholder = "-- เลือก --" }) {
-  const [open, setOpen]       = useState(false);
-  const [search, setSearch]   = useState("");
-  const wrapRef               = useRef(null);
+  const [open, setOpen]     = useState(false);   // เปิด/ปิด dropdown panel
+  const [search, setSearch] = useState("");      // ข้อความที่พิมพ์ในช่องค้นหา
+  const wrapRef             = useRef(null);      // ref ของ wrapper div
 
-  // หา label ของ value ปัจจุบัน
+  // หา option ที่ตรงกับ value ปัจจุบัน (สำหรับแสดง label บนปุ่ม)
   const selected = options.find(o => o.value === value);
 
-  // กรองตาม search
+  // กรองรายการตาม search (case-insensitive)
   const filtered = options.filter(o =>
     o.label.toLowerCase().includes(search.toLowerCase())
   );
 
-  // ปิด dropdown เมื่อคลิกนอก
+  // ── ปิด dropdown เมื่อคลิกนอก component ───────────────────
   useEffect(() => {
     function handleClick(e) {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
         setOpen(false);
-        setSearch("");
+        setSearch(""); // reset ช่องค้นหาด้วย
       }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  // ── Handler: เลือกรายการ ────────────────────────────────────
   function handleSelect(opt) {
-    onChange(opt.value, opt);
+    onChange(opt.value, opt); // ส่งทั้ง value และ option object กลับให้ parent
     setOpen(false);
     setSearch("");
   }
 
   return (
+    // wrapper: position relative เพื่อให้ dropdown วาง absolute ได้
     <div ref={wrapRef} style={{ position: "relative", width: "100%" }}>
-      {/* ปุ่มแสดงค่าที่เลือก */}
+
+      {/* ── ปุ่ม trigger ──────────────────────────────────────── */}
       <div
         onClick={() => setOpen(prev => !prev)}
         style={{
@@ -62,7 +68,7 @@ export default function SearchableSelect({ options = [], value, onChange, placeh
         <span style={{ fontSize: "10px", opacity: 0.6 }}>{open ? "▲" : "▼"}</span>
       </div>
 
-      {/* Dropdown */}
+      {/* ── Dropdown panel ─────────────────────────────────────── */}
       {open && (
         <div
           style={{
@@ -80,7 +86,7 @@ export default function SearchableSelect({ options = [], value, onChange, placeh
             boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
           }}
         >
-          {/* Search input */}
+          {/* ช่องค้นหา: autoFocus เมื่อ dropdown เปิด */}
           <div style={{ padding: "8px" }}>
             <input
               autoFocus
@@ -100,7 +106,7 @@ export default function SearchableSelect({ options = [], value, onChange, placeh
             />
           </div>
 
-          {/* รายการ */}
+          {/* รายการ: scroll ได้, highlight item ที่เลือกอยู่ */}
           <div style={{ overflowY: "auto", maxHeight: "200px" }}>
             {filtered.length === 0 ? (
               <div style={{ padding: "12px", color: "#888", textAlign: "center" }}>
