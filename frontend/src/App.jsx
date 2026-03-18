@@ -4,7 +4,13 @@ const API = "https://dnat-system-api.onrender.com";
 
 const getImageUrl = (item) => {
   if (!item?.id) return "";
-  return `${API}/equipment/${item.id}/image-binary`;
+  if (item.image_data === "HAS_IMAGE") {
+    return `${API}/equipment/${item.id}/image-binary`;
+  }
+  if (item.image_path) {
+    return `${API}${item.image_path}`;
+  }
+  return "";
 };
 
 // ─── DNAT Logo (base64) ──────────────────────────────────────
@@ -727,13 +733,17 @@ export default function App() {
                 <td style={s.td} onClick={e=>e.stopPropagation()}>
                   {eq.id
   ? <img
-      src={getImageUrl(eq)}
-      alt=""
-      style={{ width:42, height:42, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border2}` }}
-      onError={(e) => {
-        e.currentTarget.style.display = "none";
-      }}
-    />
+  src={getImageUrl(selected)}
+  alt=""
+  style={{ width:"100%", height:200, objectFit:"cover", borderRadius:10, marginBottom:16, border:`1px solid ${C.border2}` }}
+  onError={(e) => {
+    if (selected.image_path && e.currentTarget.src !== `${API}${selected.image_path}`) {
+      e.currentTarget.src = `${API}${selected.image_path}`;
+    } else {
+      e.currentTarget.style.display = "none";
+    }
+  }}
+/>
   : <div style={{ width:42, height:42, background:"#21262d", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", color:C.muted2 }}>
       <div style={{ width:18, height:18 }}><Icon.Image /></div>
     </div>

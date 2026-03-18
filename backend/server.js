@@ -102,7 +102,22 @@ app.get("/equipment", async (req, res) => {
   try {
     const { status, team, category, q } = req.query;
 
-    let sql = "SELECT id,code,name,category,team,status,location,quantity,image_path,description FROM equipment WHERE 1=1";
+    let sql = `
+  SELECT
+    id,
+    code,
+    name,
+    category,
+    team,
+    status,
+    location,
+    quantity,
+    image_path,
+    description,
+    CASE WHEN image_data IS NOT NULL THEN 'HAS_IMAGE' ELSE NULL END AS image_data
+  FROM equipment
+  WHERE 1=1
+`;
     const params = [];
 
     if (status)   { sql += " AND status=?"; params.push(status); }
