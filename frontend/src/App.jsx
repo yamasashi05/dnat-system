@@ -511,7 +511,7 @@ const BorrowForm = ({ equipment, history, onSave, onClose }) => {
 // ─── MAIN APP ────────────────────────────────────────────────
 export default function App() {
   const [user, setUser]   = useState(null);
-  const [tab,  setTab]    = useState("overview");
+  const [tab,  setTab]    = useState(() => localStorage.getItem("dnat_tab") || "overview");
   const [equipment, setEquipment] = useState([]);
   const [history,   setHistory]   = useState([]);
   const [stats,     setStats]     = useState({});
@@ -559,6 +559,16 @@ export default function App() {
 }, [user, q, filterStatus, filterTeam]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // ─── Realtime polling ทุก 30 วิ ─────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => { loadAll(); }, 30000);
+    return () => clearInterval(interval);
+  }, [user, loadAll]);
+
+  // ─── จำ tab ─────────────────────────────────────────────────
+  useEffect(() => { localStorage.setItem("dnat_tab", tab); }, [tab]);
 
   const handleReturn = async (id) => {
     if (!confirm("ยืนยันการคืนอุปกรณ์?")) return;
