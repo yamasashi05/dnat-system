@@ -172,8 +172,11 @@ app.get("/equipment/:id", async (req, res) => {
 
 app.post("/equipment", async (req, res) => {
   try {
-    const { name, category, team, status, quantity, description } = req.body;
-    if (!name) return err(res, "name required", 400);
+    const { name, category, team, status, location, quantity, description } = req.body;
+
+    if (!name || !category || !team || !status) {
+      return err(res, "name, category, team, status required", 400);
+    }
 
     const [rows] = await pool.query(
       "SELECT code FROM equipment WHERE code REGEXP '^A[0-9]+$' ORDER BY CAST(SUBSTRING(code, 2) AS UNSIGNED) DESC LIMIT 1"
@@ -188,15 +191,19 @@ app.post("/equipment", async (req, res) => {
     const autoCode = `A${nextNum}`;
 
     const [result] = await pool.query(
-      "INSERT INTO equipment (code, name, category, team, status, quantity, description) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      `INSERT INTO equipment
+       (code, name, category, team, status, location, quantity, description, image_path)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         autoCode,
         name,
-        category || "อื่นๆ",
-        team || "Other",
-        status || "ปกติ",
+        category,
+        team,
+        status,
+        location || "",
         quantity || 1,
-        description || null
+        description || "",
+        null
       ]
     );
 
@@ -209,25 +216,31 @@ app.post("/equipment", async (req, res) => {
 
 app.put("/equipment/:id", async (req, res) => {
   try {
-    const { name, category, team, status, quantity, description } = req.body;
+    const { name, category, team, status, location, quantity, description } = req.body;
+
+    if (!name || !category || !team || !status) {
+      return err(res, "name, category, team, status required", 400);
+    }
 
     await pool.query(
-      "UPDATE equipment SET name=?, category=?, team=?, status=?, quantity=?, description=? WHERE id=?",
-      [name, category, team, status, quantity, description, req.params.id]
+      `UPDATE equipment
+       SET name=?, category=?, team=?, status=?, location=?, quantity=?, description=?
+       WHERE id=?`,
+      [
+        name,
+        category,
+        team,
+        status,
+        location || "",
+        quantity || 1,
+        description || "",
+        req.params.id
+      ]
     );
 
     ok(res, null, "Updated");
   } catch (e) {
     console.error("PUT /equipment ERROR:", e);
-    err(res, e.message);
-  }
-});
-
-app.delete("/equipment/:id", async (req, res) => {
-  try {
-    await pool.query("DELETE FROM equipment WHERE id=?", [req.params.id]);
-    ok(res, null, "Deleted");
-  } catch (e) {
     err(res, e.message);
   }
 });
