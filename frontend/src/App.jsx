@@ -521,6 +521,8 @@ export default function App() {
   const [modal,    setModal]   = useState(null);
   const [selected, setSelected] = useState(null);
   const [loading,  setLoading]  = useState(false);
+  const selectedImageUrl = getImageUrl(selected);
+  const selectedFallbackUrl = selected?.image_path ? `${API}${selected.image_path}` : "";
 
   const isManager = true;
 
@@ -731,18 +733,25 @@ export default function App() {
                 onMouseLeave={e=>e.currentTarget.style.background=""}
                 onClick={()=>{ setSelected(eq); setModal("detail"); }}>
                 <td style={s.td} onClick={e=>e.stopPropagation()}>
-                  {eq.id
-  ? <img
-  src={getImageUrl(selected)}
-  alt=""
-  style={{ width:"100%", height:200, objectFit:"cover", borderRadius:10, marginBottom:16, border:`1px solid ${C.border2}` }}
-  onError={(e) => {
-    if (selected.image_path && e.currentTarget.src !== `${API}${selected.image_path}`) {
-      e.currentTarget.src = `${API}${selected.image_path}`;
-    } else {
-      e.currentTarget.style.display = "none";
-    }
-  }}
+                  {getImageUrl(eq) ? (
+  <img
+    src={getImageUrl(eq)}
+    alt=""
+    style={{ width:42, height:42, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border2}` }}
+    onError={(e) => {
+      const fallback = eq?.image_path ? `${API}${eq.image_path}` : "";
+      if (fallback && e.currentTarget.src !== fallback) {
+        e.currentTarget.src = fallback;
+      } else {
+        e.currentTarget.style.display = "none";
+      }
+    }}
+  />
+) : (
+  <div style={{ width:42, height:42, background:"#21262d", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", color:C.muted2 }}>
+    <div style={{ width:18, height:18 }}><Icon.Image /></div>
+  </div>
+)}
 />
   : <div style={{ width:42, height:42, background:"#21262d", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", color:C.muted2 }}>
       <div style={{ width:18, height:18 }}><Icon.Image /></div>
@@ -914,13 +923,17 @@ export default function App() {
       <Modal open={modal==="detail" && !!selected} onClose={closeModal} title={`รายละเอียด: ${selected?.code}`} width={480}>
         {selected && (
           <div>
-            {selected?.id && (
+            {selectedImageUrl && (
   <img
-    src={getImageUrl(selected)}
+    src={selectedImageUrl}
     alt=""
     style={{ width:"100%", height:200, objectFit:"cover", borderRadius:10, marginBottom:16, border:`1px solid ${C.border2}` }}
     onError={(e) => {
-      e.currentTarget.style.display = "none";
+      if (selectedFallbackUrl && e.currentTarget.src !== selectedFallbackUrl) {
+        e.currentTarget.src = selectedFallbackUrl;
+      } else {
+        e.currentTarget.style.display = "none";
+      }
     }}
   />
 )}
