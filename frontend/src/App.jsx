@@ -681,7 +681,7 @@ export default function App() {
               {equipment.filter(e=>e.status!=="ปกติ").slice(0,8).map(e=>(
                 <tr key={e.id}>
                   <td style={s.td}><code style={{ color:C.blue, fontSize:12 }}>{e.code}</code></td>
-                  <td style={s.td} style={{ color:C.text }}>{e.name}</td>
+                  <td style={{ ...s.td, color:C.text }}>{e.name}</td>
                   <td style={s.td}><Badge label={e.team} colorMap={TEAM_COLOR} /></td>
                   <td style={s.td}><Badge label={e.status} colorMap={STATUS_COLOR} /></td>
                 </tr>
@@ -909,7 +909,12 @@ export default function App() {
       </td>
     )}
   </tr>
-))
+))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 
   // ─── History Tab ─────────────────────────────────────────────
   const HistoryTab = () => (
