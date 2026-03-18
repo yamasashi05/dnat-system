@@ -260,6 +260,16 @@ app.put("/equipment/:id", async (req, res) => {
   }
 });
 
+app.delete("/equipment/:id", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM equipment WHERE id=?", [req.params.id]);
+    ok(res, null, "Deleted");
+  } catch (e) {
+    console.error("DELETE /equipment ERROR:", e);
+    err(res, e.message);
+  }
+});
+
 // ── IMAGES ──
 app.post("/equipment/:id/image", upload.single("image"), async (req, res) => {
   try {

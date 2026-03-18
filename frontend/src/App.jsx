@@ -727,90 +727,189 @@ export default function App() {
           <tbody>
             {loading ? <tr><td colSpan={9} style={{ ...s.td, textAlign:"center", padding:48, color:C.muted }}>กำลังโหลด...</td></tr>
             : equipment.length===0 ? <tr><td colSpan={9} style={{ ...s.td, textAlign:"center", padding:48, color:C.muted2 }}>ไม่พบข้อมูล</td></tr>
-            : equipment.map(eq=>(
-              <tr key={eq.id} style={{ cursor:"pointer", transition:"background .1s" }}
-                onMouseEnter={e=>e.currentTarget.style.background="#161b22"}
-                onMouseLeave={e=>e.currentTarget.style.background=""}
-                onClick={()=>{ setSelected(eq); setModal("detail"); }}>
-                <td style={s.td} onClick={e=>e.stopPropagation()}>
-                  {getImageUrl(eq) ? (
-  <img
-    src={getImageUrl(eq)}
-    alt=""
-    style={{ width:42, height:42, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border2}` }}
-    onError={(e) => {
-      const fallback = eq?.image_path ? `${API}${eq.image_path}` : "";
-      if (fallback && e.currentTarget.src !== fallback) {
-        e.currentTarget.src = fallback;
-      } else {
-        e.currentTarget.style.display = "none";
-      }
-    }}
-  />
-) : (
-  <div style={{ width:42, height:42, background:"#21262d", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", color:C.muted2 }}>
-    <div style={{ width:18, height:18 }}><Icon.Image /></div>
-  </div>
-)}
-/>
-  : <div style={{ width:42, height:42, background:"#21262d", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", color:C.muted2 }}>
-      <div style={{ width:18, height:18 }}><Icon.Image /></div>
-    </div>
-}
-                </td>
-                <td style={s.td}><code style={{ color:C.blue, fontSize:12, fontWeight:700 }}>{eq.code}</code></td>
-                <td style={s.td}><span style={{ color:C.text, fontWeight:500 }}>{eq.name}</span>
-                  {eq.description && <div style={{ fontSize:11, color:C.muted, marginTop:2, maxWidth:240, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{eq.description}</div>}
-                </td>
-                <td style={{ ...s.td, color: C.muted, fontSize: 12 }}>
-  {eq.category || "—"}
-</td>
-                <td style={s.td}><Badge label={eq.team} colorMap={TEAM_COLOR} /></td>
-                <td style={s.td}><Badge label={eq.status} colorMap={STATUS_COLOR} /></td>
-                <td style={{ ...s.td, textAlign: "center" }}>
-                  <div style={{ fontSize:13, fontWeight:700, color:availableQty(eq)===0?"#f85149":availableQty(eq)<=2?C.yellow:"#3fb950" }}>
-                    {availableQty(eq)}/{eq.quantity}
-                  </div>
-                  <div style={{ fontSize:10, color:C.muted2 }}>คงเหลือ</div>
-                </td>
-                <td style={s.td}>
-                  {borrowMap[eq.code]?.length > 0
-                    ? <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-                        {borrowMap[eq.code].map((b,i)=>(
-                          <div key={i} style={{ display:"flex", alignItems:"center", gap:5 }}>
-                            <div style={{ width:20, height:20, borderRadius:"50%", background:`${C.yellow}20`, display:"flex", alignItems:"center", justifyContent:"center", color:C.yellow, fontSize:9, fontWeight:700, flexShrink:0 }}>
-                              {b.borrower?.[0]?.toUpperCase()||"?"}
-                            </div>
-                            <span style={{ fontSize:12, color:C.yellow, fontWeight:600 }}>{b.borrower}</span>
-                            <span style={{ fontSize:11, color:C.muted, background:"#21262d", borderRadius:4, padding:"1px 5px" }}>{b.qty} ชิ้น</span>
-                          </div>
-                        ))}
-                      </div>
-                    : <span style={{ color:C.muted2, fontSize:12 }}>—</span>
-                  }
-                </td>
-                {isManager && (
-                  <td style={s.td} onClick={e=>e.stopPropagation()}>
-                    <div style={{ display:"flex", gap:6 }}>
-                      <button onClick={()=>{ setSelected(eq); setModal("editEquip"); }}
-                        style={{ background:"none", border:`1px solid ${C.border2}`, color:C.muted, cursor:"pointer", borderRadius:6, padding:6, display:"flex" }}>
-                        <div style={{ width:14, height:14 }}><Icon.Edit /></div>
-                      </button>
-                      <button onClick={()=>handleDeleteEquip(eq.id)}
-                        style={{ background:"none", border:`1px solid #da363330`, color:"#f85149", cursor:"pointer", borderRadius:6, padding:6, display:"flex" }}>
-                        <div style={{ width:14, height:14 }}><Icon.Trash /></div>
-                      </button>
-                    </div>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div style={{ padding:"10px 18px", borderTop:`1px solid ${C.border}`, color:C.muted2, fontSize:12 }}>{equipment.length} รายการ</div>
+            : equipment.map(eq => (
+  <tr
+    key={eq.id}
+    style={{ cursor: "pointer", transition: "background .1s" }}
+    onMouseEnter={e => e.currentTarget.style.background = "#161b22"}
+    onMouseLeave={e => e.currentTarget.style.background = ""}
+    onClick={() => { setSelected(eq); setModal("detail"); }}
+  >
+    <td style={s.td} onClick={e => e.stopPropagation()}>
+      {getImageUrl(eq) ? (
+        <img
+          src={getImageUrl(eq)}
+          alt=""
+          style={{
+            width: 42,
+            height: 42,
+            objectFit: "cover",
+            borderRadius: 8,
+            border: `1px solid ${C.border2}`
+          }}
+          onError={(e) => {
+            const fallback = eq?.image_path ? `${API}${eq.image_path}` : "";
+            if (fallback && e.currentTarget.src !== fallback) {
+              e.currentTarget.src = fallback;
+            } else {
+              e.currentTarget.style.display = "none";
+            }
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            width: 42,
+            height: 42,
+            background: "#21262d",
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: C.muted2
+          }}
+        >
+          <div style={{ width: 18, height: 18 }}>
+            <Icon.Image />
+          </div>
+        </div>
+      )}
+    </td>
+
+    <td style={s.td}>
+      <code style={{ color: C.blue, fontSize: 12, fontWeight: 700 }}>{eq.code}</code>
+    </td>
+
+    <td style={s.td}>
+      <span style={{ color: C.text, fontWeight: 500 }}>{eq.name}</span>
+      {eq.description && (
+        <div
+          style={{
+            fontSize: 11,
+            color: C.muted,
+            marginTop: 2,
+            maxWidth: 240,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          }}
+        >
+          {eq.description}
+        </div>
+      )}
+    </td>
+
+    <td style={{ ...s.td, color: C.muted, fontSize: 12 }}>
+      {eq.category || "—"}
+    </td>
+
+    <td style={s.td}>
+      <Badge label={eq.team} colorMap={TEAM_COLOR} />
+    </td>
+
+    <td style={s.td}>
+      <Badge label={eq.status} colorMap={STATUS_COLOR} />
+    </td>
+
+    <td style={{ ...s.td, textAlign: "center" }}>
+      <div
+        style={{
+          fontSize: 13,
+          fontWeight: 700,
+          color:
+            availableQty(eq) === 0
+              ? "#f85149"
+              : availableQty(eq) <= 2
+              ? C.yellow
+              : "#3fb950"
+        }}
+      >
+        {availableQty(eq)}/{eq.quantity}
       </div>
-    </div>
-  );
+      <div style={{ fontSize: 10, color: C.muted2 }}>คงเหลือ</div>
+    </td>
+
+    <td style={s.td}>
+      {borrowMap[eq.code]?.length > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          {borrowMap[eq.code].map((b, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <div
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: `${C.yellow}20`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: C.yellow,
+                  fontSize: 9,
+                  fontWeight: 700,
+                  flexShrink: 0
+                }}
+              >
+                {b.borrower?.[0]?.toUpperCase() || "?"}
+              </div>
+              <span style={{ fontSize: 12, color: C.yellow, fontWeight: 600 }}>
+                {b.borrower}
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  color: C.muted,
+                  background: "#21262d",
+                  borderRadius: 4,
+                  padding: "1px 5px"
+                }}
+              >
+                {b.qty} ชิ้น
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <span style={{ color: C.muted2, fontSize: 12 }}>—</span>
+      )}
+    </td>
+
+    {isManager && (
+      <td style={s.td} onClick={e => e.stopPropagation()}>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            onClick={() => { setSelected(eq); setModal("editEquip"); }}
+            style={{
+              background: "none",
+              border: `1px solid ${C.border2}`,
+              color: C.muted,
+              cursor: "pointer",
+              borderRadius: 6,
+              padding: 6,
+              display: "flex"
+            }}
+          >
+            <div style={{ width: 14, height: 14 }}><Icon.Edit /></div>
+          </button>
+
+          <button
+            onClick={() => handleDeleteEquip(eq.id)}
+            style={{
+              background: "none",
+              border: `1px solid #da363330`,
+              color: "#f85149",
+              cursor: "pointer",
+              borderRadius: 6,
+              padding: 6,
+              display: "flex"
+            }}
+          >
+            <div style={{ width: 14, height: 14 }}><Icon.Trash /></div>
+          </button>
+        </div>
+      </td>
+    )}
+  </tr>
+))
 
   // ─── History Tab ─────────────────────────────────────────────
   const HistoryTab = () => (
