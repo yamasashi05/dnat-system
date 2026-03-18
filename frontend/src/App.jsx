@@ -510,8 +510,11 @@ const BorrowForm = ({ equipment, history, onSave, onClose }) => {
 
 // ─── MAIN APP ────────────────────────────────────────────────
 export default function App() {
-  const [user, setUser]   = useState(null);
-  const [tab,  setTab]    = useState(() => localStorage.getItem("dnat_tab") || "overview");
+  const [user, setUser]   = useState(() => {
+    try { return JSON.parse(localStorage.getItem("dnat_user")) || null; }
+    catch { return null; }
+  });
+  const [tab,  setTab]    = useState("overview");
   const [equipment, setEquipment] = useState([]);
   const [history,   setHistory]   = useState([]);
   const [stats,     setStats]     = useState({});
@@ -560,16 +563,6 @@ export default function App() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // ─── Realtime polling ทุก 30 วิ ─────────────────────────────
-  useEffect(() => {
-    if (!user) return;
-    const interval = setInterval(() => { loadAll(); }, 30000);
-    return () => clearInterval(interval);
-  }, [user, loadAll]);
-
-  // ─── จำ tab ─────────────────────────────────────────────────
-  useEffect(() => { localStorage.setItem("dnat_tab", tab); }, [tab]);
-
   const handleReturn = async (id) => {
     if (!confirm("ยืนยันการคืนอุปกรณ์?")) return;
     await fetch(`${API}/history/${id}/return`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({return_date:new Date().toISOString().split("T")[0]})});
@@ -582,7 +575,7 @@ export default function App() {
   };
   const closeModal = () => { setModal(null); setSelected(null); };
 
-  if (!user) return <LoginPage onLogin={setUser} />;
+  if (!user) return <LoginPage onLogin={u => { localStorage.setItem("dnat_user", JSON.stringify(u)); setUser(u); }} />;
 
   // ─── Build "who is borrowing" map (รองรับหลายคนยืมพร้อมกัน) ───
   const borrowMap = {}; // { code: [{borrower, qty, notes}] }
@@ -1012,7 +1005,7 @@ export default function App() {
             <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{user.icon} {user.name}</div>
             <div style={{ fontSize:11, color:C.muted }}>{user.username}</div>
           </div>
-          <button onClick={()=>setUser(null)}
+          <button onClick={()=>{ localStorage.removeItem("dnat_user"); localStorage.removeItem("dnat_tab"); setUser(null); }}
             style={{ background:"none", border:`1px solid ${C.border2}`, color:C.muted, cursor:"pointer", borderRadius:8, padding:"6px 10px", display:"flex", alignItems:"center", gap:6, fontSize:12, fontFamily:"inherit" }}>
             <div style={{ width:14, height:14 }}><Icon.Logout /></div> ออก
           </button>
